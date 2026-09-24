@@ -200,10 +200,10 @@
                 </div>
             </div>
 
-            <!-- TAB 3: FILTERS -->
+            <!-- TAB 3: FILTERS (MULTI-SELECT ENHANCED) -->
             <div id="tab-content-filter" class="hidden space-y-4">
                 <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500">Filtrar Puntos</h3>
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500">Filtrar Puntos (Multi-Selección)</h3>
                     <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-red-600 transition-colors flex items-center gap-1 font-medium">
                         <i class="fa-solid fa-rotate-left"></i> Restablecer
                     </button>
@@ -211,39 +211,68 @@
 
                 <!-- Quick Search Input -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Búsqueda General</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Búsqueda General por Texto</label>
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
                         <input type="text" id="filter-search-input" oninput="applyFilters()" placeholder="Buscar en nombre, descripción o atributos..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                 </div>
 
-                <!-- Color Filter -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Filtrar por Color de Punto</label>
-                    <select id="filter-color-select" onchange="applyFilters()" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                        <option value="all">-- Todos los colores --</option>
-                    </select>
+                <!-- 1. Multi-Select Names -->
+                <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-700">Filtrar por Nombres (Puntos)</label>
+                        <div class="flex gap-2 text-[11px]">
+                            <button onclick="selectAllNames(true)" class="text-blue-600 font-semibold hover:underline">Todos</button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="selectAllNames(false)" class="text-slate-500 hover:underline">Ninguno</button>
+                        </div>
+                    </div>
+                    <input type="text" id="filter-name-search-input" oninput="filterNamesList()" placeholder="Buscar nombre en la lista..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 bg-white">
+                    <div id="filter-names-list" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs">
+                        <p class="text-slate-400 italic text-center py-2">Carga un KML para ver nombres disponibles.</p>
+                    </div>
                 </div>
 
-                <!-- Dynamic Data Key Filter -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Campo de Atributo (ExtendedData)</label>
-                    <select id="filter-data-key-select" onchange="onDataKeyChange()" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                <!-- 2. Multi-Select Colors -->
+                <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-slate-700">Filtrar por Colores</label>
+                        <div class="flex gap-2 text-[11px]">
+                            <button onclick="selectAllColors(true)" class="text-blue-600 font-semibold hover:underline">Todos</button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="selectAllColors(false)" class="text-slate-500 hover:underline">Ninguno</button>
+                        </div>
+                    </div>
+                    <div id="filter-colors-list" class="max-h-32 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs flex flex-wrap gap-1.5">
+                        <p class="text-slate-400 italic text-center py-2 w-full">Carga un KML para ver colores.</p>
+                    </div>
+                </div>
+
+                <!-- 3. Dynamic Data Key & Multi-Select Values -->
+                <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50 space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">Atributo Personalizado (ExtendedData)</label>
+                    <select id="filter-data-key-select" onchange="onDataKeyChange()" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium">
                         <option value="none">-- Seleccionar Atributo --</option>
                     </select>
+
+                    <div id="filter-attr-val-box" class="hidden space-y-2 pt-1 border-t border-slate-200 mt-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-semibold text-slate-600">Valores Disponibles:</span>
+                            <div class="flex gap-2 text-[11px]">
+                                <button onclick="selectAllAttrVals(true)" class="text-blue-600 font-semibold hover:underline">Todos</button>
+                                <span class="text-slate-300">|</span>
+                                <button onclick="selectAllAttrVals(false)" class="text-slate-500 hover:underline">Ninguno</button>
+                            </div>
+                        </div>
+                        <input type="text" id="filter-val-search-input" oninput="filterAttrValsList()" placeholder="Buscar valor..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 bg-white">
+                        <div id="filter-vals-list" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Dynamic Data Value Filter -->
-                <div id="filter-data-val-container" class="hidden">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Valor del Atributo</label>
-                    <select id="filter-data-val-select" onchange="applyFilters()" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                        <option value="all">-- Todos los valores --</option>
-                    </select>
-                </div>
-
-                <div id="filter-results-info" class="text-xs text-slate-500 italic bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                    Carga un archivo KML para comenzar a aplicar filtros.
+                <div id="filter-results-info" class="text-xs text-slate-600 bg-slate-100 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center font-medium">
+                    <span>Carga un archivo KML para comenzar a aplicar filtros.</span>
                 </div>
             </div>
 
@@ -340,6 +369,11 @@
         let markersData = []; // Array of marker objects
         let availableFilters = { colors: new Set(), dataKeys: new Set() };
         
+        // Multi-Select Filter States
+        let selectedFilterNames = new Set();
+        let selectedFilterColors = new Set();
+        let selectedFilterAttrVals = new Set();
+
         // Routes State
         let routes = []; // Array of { id, name, color, stops: [markerId1, markerId2...], polyline: L.polyline }
         let activeRouteId = null;
@@ -715,6 +749,7 @@
             markersData.forEach(m => {
                 const tr = document.createElement('tr');
                 tr.className = 'table-row-item hover:bg-blue-50/80 cursor-pointer border-b border-slate-100 transition-colors group';
+                tr.setAttribute('data-marker-id', m.id);
                 
                 let rowHtml = `
                     <td class="p-2 border-r border-slate-100 text-center sticky left-0 bg-white group-hover:bg-blue-50/80">
@@ -855,8 +890,34 @@
                 };
                 listContainer.appendChild(item);
             });
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+                populatePlacemarksSummary();
+                populateDataTable();
+                populateFilterOptions();
+                updateBadgeCount();
+            } else {
+                showToast('No se encontraron coordenadas en el archivo KML.', 'error');
+            }
         }
+        function clearExistingData() {
+            markersData.forEach(item => {
+                if (item.leafletMarker) map.removeLayer(item.leafletMarker);
+            });
+            markersData = [];
+            availableFilters = { colors: new Set(), dataKeys: new Set() };
+            
+            selectedFilterNames.clear();
+            selectedFilterColors.clear();
+            selectedFilterAttrVals.clear();
 
+            routes.forEach(r => { if (r.polyline) map.removeLayer(r.polyline); });
+            routes = [];
+            activeRouteId = null;
+            updateRouteSelectDropdown();
+            
+            document.getElementById('placemarks-summary-box').classList.add('hidden');
+        }
         function zoomToAllMarkers() {
             const visibleBounds = markersData
                 .filter(m => map.hasLayer(m.leafletMarker))
@@ -866,58 +927,206 @@
             }
         }
 
-        function populateFilterDropdowns() {
-            const colorSelect = document.getElementById('filter-color-select');
-            colorSelect.innerHTML = `<option value="all">-- Todos los colores (${availableFilters.colors.size}) --</option>`;
-            availableFilters.colors.forEach(hex => {
-                colorSelect.innerHTML += `<option value="${hex}">${hex}</option>`;
+        function populateFilterOptions() {
+            // 1. Populate Names list with checkboxes & counts
+            const nameCounts = {};
+            markersData.forEach(m => {
+                nameCounts[m.name] = (nameCounts[m.name] || 0) + 1;
             });
 
+            const namesContainer = document.getElementById('filter-names-list');
+            namesContainer.innerHTML = '';
+            const sortedNames = Object.keys(nameCounts).sort();
+
+            if (sortedNames.length === 0) {
+                namesContainer.innerHTML = `<p class="text-slate-400 italic text-center py-2">No hay nombres disponibles.</p>`;
+            } else {
+                sortedNames.forEach(name => {
+                    const count = nameCounts[name];
+                    const item = document.createElement('label');
+                    item.className = 'filter-name-item flex items-center justify-between p-1 hover:bg-slate-50 rounded cursor-pointer';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 truncate pr-2">
+                            <input type="checkbox" value="${escapeHtmlAttr(name)}" onchange="toggleNameFilter(this)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
+                            <span class="text-slate-700 truncate">${name}</span>
+                        </div>
+                        <span class="bg-slate-100 text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200 flex-shrink-0">${count}</span>
+                    `;
+                    namesContainer.appendChild(item);
+                });
+            }
+
+            // 2. Populate Colors list with checkboxes & color badges
+            const colorCounts = {};
+            markersData.forEach(m => {
+                const c = m.color.toLowerCase();
+                colorCounts[c] = (colorCounts[c] || 0) + 1;
+            });
+
+            const colorsContainer = document.getElementById('filter-colors-list');
+            colorsContainer.innerHTML = '';
+            const sortedColors = Object.keys(colorCounts);
+
+            if (sortedColors.length === 0) {
+                colorsContainer.innerHTML = `<p class="text-slate-400 italic text-center py-2 w-full">No hay colores disponibles.</p>`;
+            } else {
+                sortedColors.forEach(hex => {
+                    const count = colorCounts[hex];
+                    const item = document.createElement('label');
+                    item.className = 'flex items-center gap-1.5 p-1 px-2 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 cursor-pointer text-xs';
+                    item.innerHTML = `
+                        <input type="checkbox" value="${hex}" onchange="toggleColorFilter(this)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
+                        <span class="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0" style="background-color: ${hex}"></span>
+                        <span class="font-mono text-[10px] text-slate-600 uppercase">${hex}</span>
+                        <span class="bg-slate-200 text-slate-700 text-[10px] font-bold px-1 rounded-full ml-0.5">${count}</span>
+                    `;
+                    colorsContainer.appendChild(item);
+                });
+            }
+
+            // 3. Populate Attribute Key select
             const keySelect = document.getElementById('filter-data-key-select');
-            keySelect.innerHTML = `<option value="none">-- Seleccionar Atributo --</option>`;
+            keySelect.innerHTML = `<option value="none">-- Seleccionar Atributo (${availableFilters.dataKeys.size}) --</option>`;
             availableFilters.dataKeys.forEach(key => {
                 keySelect.innerHTML += `<option value="${key}">${key}</option>`;
             });
 
-            document.getElementById('filter-results-info').textContent = `Total de puntos disponibles: ${markersData.length}`;
+            // Reset Attribute Val Box
+            document.getElementById('filter-attr-val-box').classList.add('hidden');
+            
+            updateFilterSummaryInfo(markersData.length);
+        }
+
+        function escapeHtmlAttr(str) {
+            return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function toggleNameFilter(checkbox) {
+            if (checkbox.checked) {
+                selectedFilterNames.add(checkbox.value);
+            } else {
+                selectedFilterNames.delete(checkbox.value);
+            }
+            applyFilters();
+        }
+
+        function selectAllNames(enable) {
+            const checkboxes = document.querySelectorAll('#filter-names-list input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = enable;
+                if (enable) selectedFilterNames.add(cb.value);
+                else selectedFilterNames.delete(cb.value);
+            });
+            applyFilters();
+        }
+
+        function filterNamesList() {
+            const q = document.getElementById('filter-name-search-input').value.toLowerCase();
+            const items = document.querySelectorAll('.filter-name-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (!q || text.includes(q)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
+        }
+
+        function toggleColorFilter(checkbox) {
+            if (checkbox.checked) {
+                selectedFilterColors.add(checkbox.value.toLowerCase());
+            } else {
+                selectedFilterColors.delete(checkbox.value.toLowerCase());
+            }
+            applyFilters();
+        }
+
+        function selectAllColors(enable) {
+            const checkboxes = document.querySelectorAll('#filter-colors-list input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = enable;
+                if (enable) selectedFilterColors.add(cb.value.toLowerCase());
+                else selectedFilterColors.delete(cb.value.toLowerCase());
+            });
+            applyFilters();
         }
 
         function onDataKeyChange() {
-            const selectedKey = document.getElementById('filter-data-key-select').value;
-            const valContainer = document.getElementById('filter-data-val-container');
-            const valSelect = document.getElementById('filter-data-val-select');
+            selectedFilterAttrVals.clear();
+            const key = document.getElementById('filter-data-key-select').value;
+            const valBox = document.getElementById('filter-attr-val-box');
+            const valsContainer = document.getElementById('filter-vals-list');
 
-            if (selectedKey === 'none') {
-                valContainer.classList.add('hidden');
+            if (key === 'none') {
+                valBox.classList.add('hidden');
             } else {
-                valContainer.classList.remove('hidden');
-                valSelect.innerHTML = `<option value="all">-- Todos los valores --</option>`;
-
-                const uniqueVals = new Set();
+                valBox.classList.remove('hidden');
+                const valCounts = {};
                 markersData.forEach(m => {
-                    if (m.data[selectedKey] !== undefined) uniqueVals.add(m.data[selectedKey]);
+                    const val = m.data[key] !== undefined ? String(m.data[key]) : '(Sin datos)';
+                    valCounts[val] = (valCounts[val] || 0) + 1;
                 });
 
-                uniqueVals.forEach(v => {
-                    valSelect.innerHTML += `<option value="${v}">${v}</option>`;
+                valsContainer.innerHTML = '';
+                const sortedVals = Object.keys(valCounts).sort();
+
+                sortedVals.forEach(val => {
+                    const count = valCounts[val];
+                    const item = document.createElement('label');
+                    item.className = 'filter-val-item flex items-center justify-between p-1 hover:bg-slate-50 rounded cursor-pointer';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 truncate pr-2">
+                            <input type="checkbox" value="${escapeHtmlAttr(val)}" onchange="toggleAttrValFilter(this)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
+                            <span class="text-slate-700 truncate">${val}</span>
+                        </div>
+                        <span class="bg-slate-100 text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200 flex-shrink-0">${count}</span>
+                    `;
+                    valsContainer.appendChild(item);
                 });
             }
             applyFilters();
         }
 
+        function toggleAttrValFilter(checkbox) {
+            if (checkbox.checked) {
+                selectedFilterAttrVals.add(checkbox.value);
+            } else {
+                selectedFilterAttrVals.delete(checkbox.value);
+            }
+            applyFilters();
+        }
+
+        function selectAllAttrVals(enable) {
+            const checkboxes = document.querySelectorAll('#filter-vals-list input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = enable;
+                if (enable) selectedFilterAttrVals.add(cb.value);
+                else selectedFilterAttrVals.delete(cb.value);
+            });
+            applyFilters();
+        }
+
+        function filterAttrValsList() {
+            const q = document.getElementById('filter-val-search-input').value.toLowerCase();
+            const items = document.querySelectorAll('.filter-val-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (!q || text.includes(q)) item.classList.remove('hidden');
+                else item.classList.add('hidden');
+            });
+        }
+
         function applyFilters() {
             const searchText = document.getElementById('filter-search-input').value.toLowerCase().trim();
-            const selectedColor = document.getElementById('filter-color-select').value;
             const selectedKey = document.getElementById('filter-data-key-select').value;
-            const selectedVal = document.getElementById('filter-data-val-select').value;
 
             let visibleCount = 0;
 
             markersData.forEach(m => {
                 let matchesSearch = true;
+                let matchesName = true;
                 let matchesColor = true;
-                let matchesData = true;
+                let matchesAttrVal = true;
 
+                // 1. General Search
                 if (searchText) {
                     const nameMatch = m.name.toLowerCase().includes(searchText);
                     const descMatch = m.description.toLowerCase().includes(searchText);
@@ -925,20 +1134,23 @@
                     matchesSearch = nameMatch || descMatch || dataMatch;
                 }
 
-                if (selectedColor !== 'all') {
-                    matchesColor = (m.color.toLowerCase() === selectedColor.toLowerCase());
+                // 2. Multi-select Names Filter
+                if (selectedFilterNames.size > 0) {
+                    matchesName = selectedFilterNames.has(m.name);
                 }
 
-                if (selectedKey !== 'none') {
-                    const attrVal = m.data[selectedKey];
-                    if (attrVal === undefined) {
-                        matchesData = false;
-                    } else if (selectedVal !== 'all') {
-                        matchesData = (String(attrVal) === selectedVal);
-                    }
+                // 3. Multi-select Color Filter
+                if (selectedFilterColors.size > 0) {
+                    matchesColor = selectedFilterColors.has(m.color.toLowerCase());
                 }
 
-                const isVisible = matchesSearch && matchesColor && matchesData;
+                // 4. Multi-select Attribute Value Filter
+                if (selectedKey !== 'none' && selectedFilterAttrVals.size > 0) {
+                    const val = m.data[selectedKey] !== undefined ? String(m.data[selectedKey]) : '(Sin datos)';
+                    matchesAttrVal = selectedFilterAttrVals.has(val);
+                }
+
+                const isVisible = matchesSearch && matchesName && matchesColor && matchesAttrVal;
 
                 if (isVisible) {
                     if (!map.hasLayer(m.leafletMarker)) map.addLayer(m.leafletMarker);
@@ -948,16 +1160,63 @@
                 }
             });
 
-            document.getElementById('filter-results-info').textContent = `Mostrando ${visibleCount} de ${markersData.length} puntos.`;
+            filterTableWithMapVisibility();
+            updateFilterSummaryInfo(visibleCount);
+        }
+
+        function filterTableWithMapVisibility() {
+            const rows = document.querySelectorAll('.table-row-item');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const markerId = row.getAttribute('data-marker-id');
+                const m = markersData.find(item => item.id === markerId);
+                if (m && map.hasLayer(m.leafletMarker)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            const tableCountTag = document.getElementById('table-rows-count');
+            if (tableCountTag) tableCountTag.textContent = `${visibleCount} Registros`;
+        }
+
+        function updateFilterSummaryInfo(visibleCount) {
+            const info = document.getElementById('filter-results-info');
+            if (markersData.length === 0) {
+                info.innerHTML = `<span>Carga un archivo KML para comenzar a aplicar filtros.</span>`;
+                return;
+            }
+            
+            let activeFiltersText = [];
+            if (selectedFilterNames.size > 0) activeFiltersText.push(`${selectedFilterNames.size} Nombres`);
+            if (selectedFilterColors.size > 0) activeFiltersText.push(`${selectedFilterColors.size} Colores`);
+            if (selectedFilterAttrVals.size > 0) activeFiltersText.push(`${selectedFilterAttrVals.size} Atributos`);
+
+            let statusString = `<span>Mostrando <strong>${visibleCount}</strong> de <strong>${markersData.length}</strong> puntos</span>`;
+            if (activeFiltersText.length > 0) {
+                statusString += `<span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">${activeFiltersText.join(', ')}</span>`;
+            }
+
+            info.innerHTML = statusString;
         }
 
         function resetFilters() {
             document.getElementById('filter-search-input').value = '';
-            document.getElementById('filter-color-select').value = 'all';
+            const nameSearch = document.getElementById('filter-name-search-input');
+            if (nameSearch) nameSearch.value = '';
+            const valSearch = document.getElementById('filter-val-search-input');
+            if (valSearch) valSearch.value = '';
+
+            selectAllNames(false);
+            selectAllColors(false);
+            
             document.getElementById('filter-data-key-select').value = 'none';
-            document.getElementById('filter-data-val-container').classList.add('hidden');
+            document.getElementById('filter-attr-val-box').classList.add('hidden');
+            selectedFilterAttrVals.clear();
+
             applyFilters();
-            showToast('Filtros restablecidos.', 'info');
+            showToast('Todos los filtros se han restablecido.', 'info');
         }
 
         function createNewRoute() {
