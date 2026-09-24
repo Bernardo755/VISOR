@@ -223,16 +223,16 @@
                 <!-- 1. Multi-Select Names -->
                 <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50 space-y-2">
                     <div class="flex items-center justify-between">
-                        <label class="block text-xs font-bold text-slate-700">Filtrar por Nombres (Puntos)</label>
+                        <label class="block text-xs font-bold text-slate-700">Filtrar por Nombres y Descripciones</label>
                         <div class="flex gap-2 text-[11px]">
                             <button onclick="selectAllNames(true)" class="text-blue-600 font-semibold hover:underline">Todos</button>
                             <span class="text-slate-300">|</span>
                             <button onclick="selectAllNames(false)" class="text-slate-500 hover:underline">Ninguno</button>
                         </div>
                     </div>
-                    <input type="text" id="filter-name-search-input" oninput="filterNamesList()" placeholder="Buscar nombre en la lista..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 bg-white">
+                    <input type="text" id="filter-name-search-input" oninput="filterNamesList()" placeholder="Buscar nombre o descripción en la lista..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 bg-white">
                     <div id="filter-names-list" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs">
-                        <p class="text-slate-400 italic text-center py-2">Carga un archivo para ver nombres disponibles.</p>
+                        <p class="text-slate-400 italic text-center py-2">Carga un archivo para ver nombres y descripciones disponibles.</p>
                     </div>
                 </div>
 
@@ -965,7 +965,16 @@
         function populateFilterOptions() {
             const nameCounts = {};
             markersData.forEach(m => {
-                nameCounts[m.name] = (nameCounts[m.name] || 0) + 1;
+                if (m.name) {
+                    nameCounts[m.name] = (nameCounts[m.name] || 0) + 1;
+                }
+                if (m.description) {
+                    // Limpia etiquetas HTML y espacios adicionales para obtener texto plano
+                    const cleanDesc = m.description.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+                    if (cleanDesc && cleanDesc !== m.name) {
+                        nameCounts[cleanDesc] = (nameCounts[cleanDesc] || 0) + 1;
+                    }
+                }
             });
 
             const namesContainer = document.getElementById('filter-names-list');
@@ -973,7 +982,7 @@
             const sortedNames = Object.keys(nameCounts).sort();
 
             if (sortedNames.length === 0) {
-                namesContainer.innerHTML = `<p class="text-slate-400 italic text-center py-2">No hay nombres disponibles.</p>`;
+                namesContainer.innerHTML = `<p class="text-slate-400 italic text-center py-2">No hay nombres ni descripciones disponibles.</p>`;
             } else {
                 sortedNames.forEach(name => {
                     const count = nameCounts[name];
@@ -1155,7 +1164,10 @@
                 }
 
                 if (selectedFilterNames.size > 0) {
-                    matchesName = selectedFilterNames.has(m.name);
+                    const cleanDesc = m.description ? m.description.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim() : '';
+                    matchesName = selectedFilterNames.has(m.name) || 
+                                  selectedFilterNames.has(m.description) || 
+                                  (cleanDesc && selectedFilterNames.has(cleanDesc));
                 }
 
                 if (selectedFilterColors.size > 0) {
