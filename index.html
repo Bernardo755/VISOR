@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visualizador KML</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#12161c; --panel:#1a2029; --panel2:#212936; --line:#2b3442;
+    --text:#e7ecf3; --muted:#8b96a8; --accent:#3aa7ff; --accent2:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  #app{display:flex;height:100vh;}
+  #sidebar{width:340px;min-width:340px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;}
+  #map{flex:1;}
+  header{padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  header h1{font-size:15px;margin:0 0 2px;letter-spacing:.2px;}
+  header p{margin:0;font-size:12px;color:var(--muted);}
+  .section{padding:14px 18px;border-bottom:1px solid var(--line);}
+  .section h2{font-size:12px;color:var(--muted);margin:0 0 10px;font-weight:600;}
+  label.file-btn{display:block;background:var(--accent);color:#04121f;text-align:center;padding:9px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+  label.file-btn input{display:none;}
+  #fileName{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all;}
+  select,input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px 8px;border-radius:5px;font-size:13px;margin-top:4px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .colorRow{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px;}
+  .swatch{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.4);flex-shrink:0;}
+  .colorRow span.cnt{margin-left:auto;color:var(--muted);}
+  .miniBtn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:4px 9px;border-radius:5px;font-size:11px;cursor:pointer;}
+  .miniBtn:hover{border-color:var(--accent);}
+  .navBtns{display:flex;gap:6px;margin-top:8px;}
+  .navBtns button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:6px;cursor:pointer;font-size:15px;}
+  .navBtns button:hover{border-color:var(--accent);}
+  #routeCounter{text-align:center;font-size:12px;color:var(--muted);margin-top:6px;}
+  input[type=range]{width:100%;margin-top:8px;accent-color:var(--accent);}
+  #infoPanel{font-size:12.5px;line-height:1.5;}
+  #infoPanel table{width:100%;border-collapse:collapse;margin-top:6px;}
+  #infoPanel td{padding:3px 0;border-top:1px solid var(--line);vertical-align:top;}
+  #infoPanel td.k{color:var(--muted);width:40%;padding-right:6px;}
+  .empty{color:var(--muted);font-size:12.5px;}
+  #stats{font-size:11.5px;color:var(--muted);padding:10px 18px;}
+  .leaflet-popup-content{font-size:12.5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <header>
+      <h1>Visualizador KML</h1>
+      <p>Carga un KML, filtra puntos y recorre rutas en orden</p>
+    </header>
+
+    <div class="section">
+      <h2>Archivo</h2>
+      <label class="file-btn">Cargar KML<input type="file" id="fileInput" accept=".kml"></label>
+      <div id="fileName">Ningún archivo cargado</div>
+    </div>
+
+    <div class="section">
+      <h2>Filtrar por color</h2>
+      <div class="row" style="margin-bottom:6px;">
+        <button class="miniBtn" id="allColors">Todos</button>
+        <button class="miniBtn" id="noColors">Ninguno</button>
+      </div>
+      <div id="colorFilters"><div class="empty">Carga un KML para ver colores</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Filtrar por dato</h2>
+      <select id="fieldSelect"><option value="">— elige un campo —</option></select>
+      <div class="row" id="valueBtns" style="margin:8px 0 4px;display:none;">
+        <button class="miniBtn" id="allValues">Todos</button>
+        <button class="miniBtn" id="noValues">Ninguno</button>
+      </div>
+      <div id="valueFilters"><div class="empty">Elige un campo para ver sus valores</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Recorrer ruta</h2>
+      <select id="routeSelect"><option value="">Sin rutas cargadas</option></select>
+      <div class="navBtns">
+        <button id="prevBtn">◀</button>
+        <button id="nextBtn">▶</button>
+      </div>
+      <input type="range" id="routeSlider" min="1" max="1" value="1" disabled>
+      <div id="routeCounter">–</div>
+    </div>
+
+    <div class="section" style="flex:1;">
+      <h2>Punto actual</h2>
+      <div id="infoPanel" class="empty">Selecciona un punto o navega una ruta</div>
+    </div>
+
+    <div id="stats"></div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script>
+const map = L.map('map', {zoomControl:true}).setView([19.43, -99.13], 6);
+const baseLayers = {
+  "Calles": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}),
+  "Satélite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'Tiles &copy; Esri'}),
+  "Terreno": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenTopoMap'})
+};
+baseLayers["Calles"].addTo(map);
+L.control.layers(baseLayers).addTo(map);
+
+let placemarks = [];
+let routesMap = {};
+let currentRoute = null, routeIndex = 0;
+let highlightMarker = null, routeLine = null;
+
+function esc(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function kmlColor(hex){
+  if(!hex) return null;
+  hex = hex.trim();
+  if(hex.length < 8) return '#'+hex.slice(-6);
+  const bb=hex.substr(2,2), gg=hex.substr(4,2), rr=hex.substr(6,2);
+  return '#'+rr+gg+bb;
+}
+
+function buildInfoHTML(p){
+  let html = `<b>${esc(p.name)}</b>`;
+  if(p.description) html += `<div style="margin-top:4px;color:var(--muted)">${esc(p.description)}</div>`;
+  const keys = Object.keys(p.ext);
+  if(keys.length){
+    html += '<table>';
+    keys.forEach(k => html += `<tr><td class="k">${esc(k)}</td><td>${esc(p.ext[k])}</td></tr>`);
+    html += '</table>';
+  }
+  return html;
+}
+
+function parseKML(text){
+  const xml = new DOMParser().parseFromString(text, 'application/xml');
+  if(xml.querySelector('parsererror')){ alert('El archivo KML no se pudo leer.'); return; }
+
+  const styles = {};
+  xml.querySelectorAll('Style').forEach(s => {
+    const id = s.getAttribute('id'); if(!id) return;
+    const c = s.querySelector('IconStyle > color') || s.querySelector('LineStyle > color') || s.querySelector('PolyStyle > color');
+    styles[id] = c ? kmlColor(c.textContent) : null;
+  });
+  xml.querySelectorAll('StyleMap').forEach(sm => {
+    const id = sm.getAttribute('id');
+    let normalUrl = null;
+    sm.querySelectorAll('Pair').forEach(p => {
+      const key = p.querySelector('key'), url = p.querySelector('styleUrl');
+      if(key && key.textContent.trim() === 'normal' && url) normalUrl = url.textContent.trim().replace('#','');
+    });
+    if(normalUrl && styles[normalUrl]) styles[id] = styles[normalUrl];
+  });
+
+  placemarks = [];
+  function processPlacemark(pm, folder){
+    const coordEl = pm.querySelector('Point > coordinates');
+    if(!coordEl) return;
+    const parts = coordEl.textContent.trim().split(',');
+    const lon = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+    if(isNaN(lat) || isNaN(lon)) return;
+    const nameEl = pm.querySelector(':scope > name');
+    const descEl = pm.querySelector(':scope > description');
+    const styleUrlEl = pm.querySelector(':scope > styleUrl');
+    let color = '#3aa7ff';
+    if(styleUrlEl){ const id = styleUrlEl.textContent.trim().replace('#',''); if(styles[id]) color = styles[id]; }
+    const inline = pm.querySelector(':scope > Style IconStyle color, :scope > Style LineStyle color, :scope > Style PolyStyle color');
+    if(inline) color = kmlColor(inline.textContent);
+    const ext = {};
+    pm.querySelectorAll('ExtendedData Data').forEach(d => {
+      const key = d.getAttribute('name'); const val = d.querySelector('value');
+      if(key) ext[key] = val ? val.textContent.trim() : '';
+    });
+    pm.querySelectorAll('ExtendedData SimpleData').forEach(d => {
+      const key = d.getAttribute('name'); if(key) ext[key] = d.textContent.trim();
+    });
+    placemarks.push({
+      id: placemarks.length,
+      name: nameEl ? nameEl.textContent.trim() : '(sin nombre)',
+      description: descEl ? descEl.textContent.trim() : '',
+      lat, lon, color, folder, ext
+    });
+  }
+  function walk(node, folder){
+    for(const child of Array.from(node.children)){
+      if(child.tagName === 'Folder'){
+        const n = child.querySelector(':scope > name');
+        walk(child, n ? n.textContent.trim() : folder);
+      } else if(child.tagName === 'Placemark'){
+        processPlacemark(child, folder);
+      } else {
+        walk(child, folder);
+      }
+    }
+  }
+  walk(xml.documentElement, 'Sin carpeta');
+  buildMap();
+}
+
+let markerLayer = L.layerGroup().addTo(map);
+
+function buildMap(){
+  markerLayer.clearLayers();
+  if(highlightMarker){ map.removeLayer(highlightMarker); highlightMarker = null; }
+  if(routeLine){ map.removeLayer(routeLine); routeLine = null; }
+
+  placemarks.forEach(p => {
+    p.marker = L.circleMarker([p.lat, p.lon], {
+      radius: 7, color: '#fff', weight: 1, fillColor: p.color, fillOpacity: 0.9
+    }).bindPopup(buildInfoHTML(p));
+    p.marker.on('click', () => {
+      document.getElementById('infoPanel').innerHTML = buildInfoHTML(p);
+    });
+    markerLayer.addLayer(p.marker);
+  });
+
+  if(placemarks.length){
+    const group = L.featureGroup(placemarks.map(p => p.marker));
+    map.fitBounds(group.getBounds().pad(0.15));
+  }
+
+  buildColorFilters();
+  buildFieldSelect();
+  buildRoutes();
+  document.getElementById('stats').textContent = `${placemarks.length} puntos cargados`;
+  document.getElementById('infoPanel').innerHTML = '<span class="empty">Selecciona un punto o navega una ruta</span>';
+}
+
+function buildColorFilters(){
+  const wrap = document.getElementById('colorFilters');
+  const counts = {};
+  placemarks.forEach(p => counts[p.color] = (counts[p.color]||0)+1);
+  const colors = Object.keys(counts);
+  if(!colors.length){ wrap.innerHTML = '<div class="empty">Sin datos</div>'; return; }
+  wrap.innerHTML = colors.map(c => `
+    <label class="colorRow">
+      <input type="checkbox" class="colorChk" value="${c}" checked>
+      <span class="swatch" style="background:${c}"></span>
+      ${c}
+      <span class="cnt">${counts[c]}</span>
+    </label>`).join('');
+  wrap.querySelectorAll('.colorChk').forEach(chk => chk.addEventListener('change', applyFilters));
+}
+
+function buildFieldSelect(){
+  const sel = document.getElementById('fieldSelect');
+  const fields = new Set();
+  placemarks.forEach(p => Object.keys(p.ext).forEach(k => fields.add(k)));
+  sel.innerHTML = '<option value="">— elige un campo —</option>' +
+    [...fields].map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  buildValueFilters('');
+}
+
+function fieldValue(p, field){
+  const v = p.ext[field];
+  return (v === undefined || v === '') ? '(sin dato)' : v;
+}
+
+function buildValueFilters(field){
+  const wrap = document.getElementById('valueFilters');
+  const btns = document.getElementById('valueBtns');
+  if(!field){
+    wrap.innerHTML = '<div class="empty">Elige un campo para ver sus valores</div>';
+    btns.style.display = 'none';
+    applyFilters();
+    return;
+  }
+  const counts = {};
+  placemarks.forEach(p => { const v = fieldValue(p, field); counts[v] = (counts[v]||0)+1; });
+  const values = Object.keys(counts).sort();
+  btns.style.display = 'flex';
+  wrap.innerHTML = values.map(v => `
+    <label class="colorRow">
+      <input type="checkbox" class="valueChk" value="${esc(v)}" checked>
+      ${esc(v)}
+      <span class="cnt">${counts[v]}</span>
+    </label>`).join('');
+  wrap.querySelectorAll('.valueChk').forEach(chk => chk.addEventListener('change', applyFilters));
+  applyFilters();
+}
+
+function applyFilters(){
+  const activeColors = new Set([...document.querySelectorAll('.colorChk:checked')].map(c => c.value));
+  const field = document.getElementById('fieldSelect').value;
+  const activeValues = field ? new Set([...document.querySelectorAll('.valueChk:checked')].map(c => c.value)) : null;
+  placemarks.forEach(p => {
+    let visible = activeColors.has(p.color);
+    if(visible && field) visible = activeValues.has(fieldValue(p, field));
+    p.marker.setStyle({opacity: visible ? 1 : 0, fillOpacity: visible ? 0.9 : 0});
+    p.marker._path && (p.marker._path.style.pointerEvents = visible ? 'auto' : 'none');
+  });
+}
+document.getElementById('allColors').onclick = () => { document.querySelectorAll('.colorChk').forEach(c=>c.checked=true); applyFilters(); };
+document.getElementById('noColors').onclick = () => { document.querySelectorAll('.colorChk').forEach(c=>c.checked=false); applyFilters(); };
+document.getElementById('fieldSelect').addEventListener('change', e => buildValueFilters(e.target.value));
+document.getElementById('allValues').onclick = () => { document.querySelectorAll('.valueChk').forEach(c=>c.checked=true); applyFilters(); };
+document.getElementById('noValues').onclick = () => { document.querySelectorAll('.valueChk').forEach(c=>c.checked=false); applyFilters(); };
+
+function buildRoutes(){
+  routesMap = {};
+  placemarks.forEach(p => { (routesMap[p.folder] ||= []).push(p); });
+  const sel = document.getElementById('routeSelect');
+  const keys = Object.keys(routesMap);
+  if(!keys.length){ sel.innerHTML = '<option value="">Sin rutas cargadas</option>'; return; }
+  sel.innerHTML = '<option value="">— elegir ruta —</option>' +
+    keys.map(k => `<option value="${esc(k)}">${esc(k)} (${routesMap[k].length} puntos)</option>`).join('');
+}
+
+document.getElementById('routeSelect').addEventListener('change', e => {
+  const key = e.target.value;
+  if(!key){ currentRoute = null; resetRouteUI(); return; }
+  currentRoute = routesMap[key];
+  routeIndex = 0;
+  document.getElementById('routeSlider').disabled = false;
+  document.getElementById('routeSlider').max = currentRoute.length;
+  updateRouteUI();
+});
+function resetRouteUI(){
+  if(highlightMarker){ map.removeLayer(highlightMarker); highlightMarker = null; }
+  if(routeLine){ map.removeLayer(routeLine); routeLine = null; }
+  document.getElementById('routeSlider').disabled = true;
+  document.getElementById('routeSlider').value = 1;
+  document.getElementById('routeCounter').textContent = '–';
+}
+function updateRouteUI(){
+  if(!currentRoute) return;
+  const total = currentRoute.length;
+  const pt = currentRoute[routeIndex];
+  document.getElementById('routeSlider').value = routeIndex + 1;
+  document.getElementById('routeCounter').textContent = `${routeIndex+1} / ${total}`;
+  map.flyTo([pt.lat, pt.lon], Math.max(map.getZoom(), 15));
+  if(highlightMarker) map.removeLayer(highlightMarker);
+  highlightMarker = L.circleMarker([pt.lat, pt.lon], {radius:12, color:'#fff', weight:3, fillColor: pt.color, fillOpacity:1}).addTo(map);
+  const coords = currentRoute.slice(0, routeIndex+1).map(p => [p.lat, p.lon]);
+  if(routeLine) map.removeLayer(routeLine);
+  routeLine = L.polyline(coords, {color:'#ffb454', weight:3, dashArray:'6,6'}).addTo(map);
+  document.getElementById('infoPanel').innerHTML = buildInfoHTML(pt);
+}
+document.getElementById('prevBtn').onclick = () => { if(currentRoute){ routeIndex = Math.max(0, routeIndex-1); updateRouteUI(); } };
+document.getElementById('nextBtn').onclick = () => { if(currentRoute){ routeIndex = Math.min(currentRoute.length-1, routeIndex+1); updateRouteUI(); } };
+document.getElementById('routeSlider').addEventListener('input', e => {
+  if(currentRoute){ routeIndex = parseInt(e.target.value,10) - 1; updateRouteUI(); }
+});
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => parseKML(ev.target.result);
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
