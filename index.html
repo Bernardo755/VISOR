@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador KML, Tabla de Datos y Creador de Rutas</title>
+    <title>Visualizador KML & Excel, Tabla de Datos y Creador de Rutas</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,8 +14,10 @@
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- SheetJS (XLSX Parser for Excel & CSV files) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
-    <!-- Custom CSS Styles -->
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
         #map { height: 100%; width: 100%; z-index: 1; }
@@ -111,8 +113,8 @@
                     <i class="fa-solid fa-map-location-dot"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-base leading-tight">Visualizador KML & Rutas</h1>
-                    <p class="text-xs text-slate-400">Tabla de datos, Filtros y KML Exporter</p>
+                    <h1 class="font-bold text-base leading-tight">Visualizador KML & Excel</h1>
+                    <p class="text-xs text-slate-400">Tabla de datos, Filtros y Rutas (1 a N)</p>
                 </div>
             </div>
             <span id="marker-count-badge" class="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full border border-slate-700 hidden">
@@ -123,7 +125,7 @@
         <!-- Navigation Tabs -->
         <div class="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600 overflow-x-auto">
             <button id="tab-btn-data" onclick="switchTab('data')" class="flex-1 py-3 px-2 text-center border-b-2 border-blue-600 text-blue-600 font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
-                <i class="fa-solid fa-folder-open"></i> Datos KML
+                <i class="fa-solid fa-folder-open"></i> Archivo
             </button>
             <button id="tab-btn-table" onclick="switchTab('table')" class="flex-1 py-3 px-2 text-center border-b-2 border-transparent hover:text-slate-900 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
                 <i class="fa-solid fa-table"></i> Tabla
@@ -140,16 +142,16 @@
         <!-- Tab Content Container -->
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
 
-            <!-- TAB 1: KML UPLOAD & SUMMARY -->
+            <!-- TAB 1: KML / EXCEL UPLOAD & SUMMARY -->
             <div id="tab-content-data" class="space-y-4">
                 <div class="bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-5 text-center transition-all cursor-pointer group">
-                    <input type="file" id="kml-file-input" accept=".kml" class="hidden" onchange="handleFileUpload(event)">
+                    <input type="file" id="kml-file-input" accept=".kml,.xml,.csv,.xlsx,.xls,application/vnd.google-earth.kml+xml,text/xml,*" class="hidden" onchange="handleFileUpload(event)">
                     <label for="kml-file-input" class="cursor-pointer block">
                         <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                             <i class="fa-solid fa-file-arrow-up text-xl"></i>
                         </div>
-                        <span class="block font-semibold text-sm text-slate-700 mb-1">Cargar Archivo KML</span>
-                        <span class="block text-xs text-slate-400">Procesa estilos, colores y ExtendedData automáticamente</span>
+                        <span class="block font-semibold text-sm text-slate-700 mb-1">Cargar Archivo (KML, XML, Excel .xlsx, CSV)</span>
+                        <span class="block text-xs text-slate-400">Procesa coordenadas, colores y atributos automáticamente</span>
                     </label>
                 </div>
 
@@ -173,7 +175,7 @@
                 </div>
                 
                 <p class="text-xs text-slate-500 leading-relaxed">
-                    Muestra todos los puntos y sus atributos (ExtendedData, tablas HTML o datos personalizados). Haz clic en una fila para enfocar en el mapa.
+                    Muestra todos los puntos y sus atributos (ExtendedData, columnas de Excel o tablas HTML). Haz clic en una fila para enfocar en el mapa.
                 </p>
 
                 <!-- Table Search Filter -->
@@ -193,7 +195,7 @@
                         </thead>
                         <tbody id="data-table-body" class="divide-y divide-slate-100 text-slate-600">
                             <tr>
-                                <td colspan="3" class="p-4 text-center italic text-slate-400">Carga un KML para visualizar la tabla.</td>
+                                <td colspan="3" class="p-4 text-center italic text-slate-400">Carga un archivo KML o Excel para visualizar la tabla.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -230,7 +232,7 @@
                     </div>
                     <input type="text" id="filter-name-search-input" oninput="filterNamesList()" placeholder="Buscar nombre en la lista..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 bg-white">
                     <div id="filter-names-list" class="max-h-36 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs">
-                        <p class="text-slate-400 italic text-center py-2">Carga un KML para ver nombres disponibles.</p>
+                        <p class="text-slate-400 italic text-center py-2">Carga un archivo para ver nombres disponibles.</p>
                     </div>
                 </div>
 
@@ -245,13 +247,13 @@
                         </div>
                     </div>
                     <div id="filter-colors-list" class="max-h-32 overflow-y-auto space-y-1 pr-1 bg-white p-2 rounded border border-slate-200 text-xs flex flex-wrap gap-1.5">
-                        <p class="text-slate-400 italic text-center py-2 w-full">Carga un KML para ver colores.</p>
+                        <p class="text-slate-400 italic text-center py-2 w-full">Carga un archivo para ver colores.</p>
                     </div>
                 </div>
 
                 <!-- 3. Dynamic Data Key & Multi-Select Values -->
                 <div class="border border-slate-200 rounded-lg p-3 bg-slate-50/50 space-y-2">
-                    <label class="block text-xs font-bold text-slate-700">Atributo Personalizado (ExtendedData)</label>
+                    <label class="block text-xs font-bold text-slate-700">Atributo Personalizado (ExtendedData / Columna)</label>
                     <select id="filter-data-key-select" onchange="onDataKeyChange()" class="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium">
                         <option value="none">-- Seleccionar Atributo --</option>
                     </select>
@@ -272,7 +274,7 @@
                 </div>
 
                 <div id="filter-results-info" class="text-xs text-slate-600 bg-slate-100 p-2.5 rounded-lg border border-slate-200 flex justify-between items-center font-medium">
-                    <span>Carga un archivo KML para comenzar a aplicar filtros.</span>
+                    <span>Carga un archivo KML o Excel para comenzar a aplicar filtros.</span>
                 </div>
             </div>
 
@@ -423,33 +425,132 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            showToast('Procesando archivo KML y extrayendo colores y ExtendedData...', 'info');
+            const fileName = file.name.toLowerCase();
+            showToast(`Procesando ${file.name}...`, 'info');
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    parseKML(e.target.result);
-                    showToast(`¡Se cargaron ${markersData.length} puntos correctamente!`, 'success');
-                } catch (error) {
-                    console.error("Error al procesar KML:", error);
-                    showToast('Error al leer el KML. Asegúrate de que sea un archivo XML válido.', 'error');
-                }
-            };
-            reader.readAsText(file);
+            if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        parseExcelOrCSV(jsonRows);
+                        showToast(`¡Se cargaron ${markersData.length} puntos desde Excel/CSV!`, 'success');
+                    } catch (error) {
+                        console.error("Error al procesar Excel/CSV:", error);
+                        showToast('Error al leer el archivo Excel/CSV. Revisa las columnas.', 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        parseKML(e.target.result);
+                        showToast(`¡Se cargaron ${markersData.length} puntos correctamente!`, 'success');
+                    } catch (error) {
+                        console.error("Error al procesar KML:", error);
+                        showToast('Error al leer el KML. Asegúrate de que sea un XML válido.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
         }
 
-        // Convert KML Color Format (AABBGGRR or BBGGRR) to Standard Hex (#RRGGBB)
+        function parseExcelOrCSV(rows) {
+            if (!rows || rows.length === 0) {
+                showToast('El archivo Excel está vacío.', 'error');
+                return;
+            }
+
+            clearExistingData();
+            const bounds = [];
+
+            // Detect latitude and longitude column names flexibly
+            const sample = rows[0];
+            const keys = Object.keys(sample);
+
+            let latKey = keys.find(k => k.toLowerCase().match(/^(lat|latitud|latitude|y)$/i));
+            let lngKey = keys.find(k => k.toLowerCase().match(/^(lng|long|longitud|longitude|x)$/i));
+            let coordsKey = keys.find(k => k.toLowerCase().match(/^(coords|coordenadas|location)$/i));
+            let nameKey = keys.find(k => k.toLowerCase().match(/^(nombre|name|label|punto|id)$/i));
+            let colorKey = keys.find(k => k.toLowerCase().match(/^(color|colour|hex|style)$/i));
+
+            rows.forEach((row, i) => {
+                let lat = NaN, lng = NaN;
+
+                if (latKey && lngKey && row[latKey] !== undefined && row[lngKey] !== undefined) {
+                    lat = parseFloat(row[latKey]);
+                    lng = parseFloat(row[lngKey]);
+                } else if (coordsKey && row[coordsKey]) {
+                    const parts = String(row[coordsKey]).split(/[,;|\s]+/);
+                    if (parts.length >= 2) {
+                        lat = parseFloat(parts[0]);
+                        lng = parseFloat(parts[1]);
+                    }
+                }
+
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const name = nameKey && row[nameKey] ? String(row[nameKey]).trim() : `Punto ${i + 1}`;
+                let color = colorKey && row[colorKey] ? String(row[colorKey]).trim() : DEFAULT_COLOR;
+                if (!color.startsWith('#') && color.length === 6) color = '#' + color;
+
+                const extendedData = {};
+                keys.forEach(k => {
+                    if (k !== latKey && k !== lngKey && k !== coordsKey && k !== nameKey && k !== colorKey) {
+                        const val = row[k] !== undefined ? String(row[k]).trim() : '';
+                        if (val) {
+                            extendedData[k] = val;
+                            availableFilters.dataKeys.add(k);
+                        }
+                    }
+                });
+
+                availableFilters.colors.add(color);
+
+                const markerId = `pm_${i}_${Date.now()}`;
+                const markerItem = {
+                    id: markerId,
+                    name: name,
+                    description: '',
+                    lat: lat,
+                    lng: lng,
+                    color: color,
+                    data: extendedData,
+                    leafletMarker: null
+                };
+
+                const leafletMarker = createLeafletMarker(markerItem);
+                markerItem.leafletMarker = leafletMarker;
+
+                markersData.push(markerItem);
+                bounds.push([lat, lng]);
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+                populatePlacemarksSummary();
+                populateDataTable();
+                populateFilterOptions();
+                updateBadgeCount();
+            } else {
+                showToast('No se encontraron columnas de Latitud/Longitud válidas en el Excel.', 'error');
+            }
+        }
+
         function kmlColorToHex(kmlColor) {
             if (!kmlColor) return null;
             let cleanColor = kmlColor.trim().replace('#', '');
             if (cleanColor.length === 8) {
-                // AABBGGRR -> extract RRGGBB (Index 0..1 Alpha, 2..3 Blue, 4..5 Green, 6..7 Red)
                 const b = cleanColor.substring(2, 4);
                 const g = cleanColor.substring(4, 6);
                 const r = cleanColor.substring(6, 8);
                 return `#${r}${g}${b}`;
             } else if (cleanColor.length === 6) {
-                // BBGGRR -> RRGGBB
                 const b = cleanColor.substring(0, 2);
                 const g = cleanColor.substring(2, 4);
                 const r = cleanColor.substring(4, 6);
@@ -458,7 +559,6 @@
             return null;
         }
 
-        // Infer pin color from icon URL keyword (e.g. ylw-pushpin -> yellow)
         function getColorFromHref(href) {
             if (!href) return null;
             const lower = href.toLowerCase();
@@ -475,11 +575,9 @@
             return null;
         }
 
-        // Extract color from a <Style> XML element
         function extractColorFromStyleElement(styleEl) {
             if (!styleEl) return null;
             
-            // 1. IconStyle color
             const iconStyle = styleEl.getElementsByTagName("IconStyle")[0];
             if (iconStyle) {
                 const colorNode = iconStyle.getElementsByTagName("color")[0];
@@ -497,20 +595,9 @@
                 }
             }
 
-            // 2. LineStyle color
             const lineStyle = styleEl.getElementsByTagName("LineStyle")[0];
             if (lineStyle) {
                 const colorNode = lineStyle.getElementsByTagName("color")[0];
-                if (colorNode && colorNode.textContent) {
-                    const hex = kmlColorToHex(colorNode.textContent);
-                    if (hex) return hex;
-                }
-            }
-
-            // 3. PolyStyle color
-            const polyStyle = styleEl.getElementsByTagName("PolyStyle")[0];
-            if (polyStyle) {
-                const colorNode = polyStyle.getElementsByTagName("color")[0];
                 if (colorNode && colorNode.textContent) {
                     const hex = kmlColorToHex(colorNode.textContent);
                     if (hex) return hex;
@@ -538,7 +625,7 @@
                     }
                 });
             } catch(e) {
-                console.warn("Error parsing description HTML table:", e);
+                console.warn("Error parsing HTML table inside description:", e);
             }
         }
 
@@ -548,7 +635,6 @@
 
             clearExistingData();
 
-            // 1. Resolve StyleMaps (StyleMap ID -> target Style ID)
             const styleMapToStyle = {};
             const styleMaps = xmlDoc.getElementsByTagName("StyleMap");
             for (let i = 0; i < styleMaps.length; i++) {
@@ -566,7 +652,6 @@
                 }
             }
 
-            // 2. Map direct Styles (<Style id="..."> -> Color)
             const styleColorMap = {};
             const styles = xmlDoc.getElementsByTagName("Style");
             for (let i = 0; i < styles.length; i++) {
@@ -578,7 +663,6 @@
                 }
             }
 
-            // 3. Extract Placemarks
             const placemarks = xmlDoc.getElementsByTagName("Placemark");
             const bounds = [];
 
@@ -602,22 +686,19 @@
                 const descNode = pm.getElementsByTagName("description")[0];
                 const description = descNode ? descNode.textContent.trim() : '';
 
-                // Extract Color respecting Inline Style > StyleMap > Style > Fallback
                 let markerColor = null;
 
-                // Check inline <Style> tag
                 const inlineStyle = pm.getElementsByTagName("Style")[0];
                 if (inlineStyle) {
                     markerColor = extractColorFromStyleElement(inlineStyle);
                 }
 
-                // Check <styleUrl>
                 if (!markerColor) {
                     const styleUrlNode = pm.getElementsByTagName("styleUrl")[0];
                     if (styleUrlNode) {
                         let styleUrl = styleUrlNode.textContent.trim();
                         if (styleMapToStyle[styleUrl]) {
-                            styleUrl = styleMapToStyle[styleUrl]; // Resolve StyleMap
+                            styleUrl = styleMapToStyle[styleUrl];
                         }
                         if (styleColorMap[styleUrl]) {
                             markerColor = styleColorMap[styleUrl];
@@ -625,22 +706,16 @@
                     }
                 }
 
-                if (!markerColor) {
-                    markerColor = DEFAULT_COLOR;
-                }
+                if (!markerColor) markerColor = DEFAULT_COLOR;
 
-                // ExtendedData & Additional Attributes Extraction
                 const extendedData = {};
 
-                // Parse HTML table inside <description> if present
                 if (description) {
                     parseDescriptionTable(description, extendedData);
                 }
 
-                // Parse ExtendedData tags
                 const extNode = pm.getElementsByTagName("ExtendedData")[0];
                 if (extNode) {
-                    // A. Standard <Data name="X"><value>Y</value></Data>
                     const dataNodes = extNode.getElementsByTagName("Data");
                     for (let j = 0; j < dataNodes.length; j++) {
                         const key = dataNodes[j].getAttribute("name");
@@ -651,29 +726,12 @@
                         }
                     }
 
-                    // B. <SimpleData name="X">Y</SimpleData>
                     const simpleDataNodes = extNode.getElementsByTagName("SimpleData");
                     for (let j = 0; j < simpleDataNodes.length; j++) {
                         const key = simpleDataNodes[j].getAttribute("name");
                         if (key && simpleDataNodes[j].textContent !== undefined) {
                             extendedData[key] = simpleDataNodes[j].textContent.trim();
                             availableFilters.dataKeys.add(key);
-                        }
-                    }
-
-                    // C. Untyped tags <ExtendedData><Tag>Value</Tag></ExtendedData>
-                    const children = extNode.children || extNode.childNodes;
-                    for (let j = 0; j < children.length; j++) {
-                        const child = children[j];
-                        if (child.nodeType === 1) {
-                            const tagName = child.tagName;
-                            if (tagName !== 'Data' && tagName !== 'SchemaData' && tagName !== 'SimpleData') {
-                                const val = child.textContent ? child.textContent.trim() : '';
-                                if (tagName && val) {
-                                    extendedData[tagName] = val;
-                                    availableFilters.dataKeys.add(tagName);
-                                }
-                            }
                         }
                     }
                 }
@@ -708,6 +766,142 @@
             } else {
                 showToast('No se encontraron coordenadas en el archivo KML.', 'error');
             }
+        }
+
+        function createLeafletMarker(item) {
+            const customIcon = L.divIcon({
+                className: 'custom-kml-marker',
+                html: `
+                    <div id="marker-icon-${item.id}" class="marker-pin-wrapper relative">
+                        <div class="marker-pin" style="background-color: ${item.color};"></div>
+                    </div>
+                `,
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -28]
+            });
+
+            const marker = L.marker([item.lat, item.lng], { icon: customIcon }).addTo(map);
+
+            let popupHtml = `<div class="p-1 space-y-1.5">`;
+            popupHtml += `<div class="flex items-center gap-2 border-b border-slate-200 pb-1.5">`;
+            popupHtml += `<span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${item.color}"></span>`;
+            popupHtml += `<h4 class="font-bold text-sm text-slate-800">${escapeXml(item.name)}</h4>`;
+            popupHtml += `</div>`;
+
+            if (item.description) {
+                popupHtml += `<p class="text-xs text-slate-600 my-1">${escapeXml(item.description)}</p>`;
+            }
+
+            const dataKeys = Object.keys(item.data);
+            if (dataKeys.length > 0) {
+                popupHtml += `<div class="mt-2 pt-1.5 border-t border-slate-100 max-h-36 overflow-y-auto space-y-1">`;
+                dataKeys.forEach(k => {
+                    popupHtml += `<div class="text-[11px] flex justify-between gap-2 bg-slate-50 p-1 rounded">`;
+                    popupHtml += `<span class="font-bold text-slate-600 truncate">${escapeXml(k)}:</span>`;
+                    popupHtml += `<span class="text-slate-800 truncate">${escapeXml(String(item.data[k]))}</span>`;
+                    popupHtml += `</div>`;
+                });
+                popupHtml += `</div>`;
+            }
+            popupHtml += `</div>`;
+
+            marker.bindPopup(popupHtml);
+
+            marker.on('click', function() {
+                if (isRouteEditMode && activeRouteId) {
+                    addMarkerToActiveRoute(item.id);
+                }
+            });
+
+            return marker;
+        }
+
+        function populateDataTable() {
+            const head = document.getElementById('data-table-head');
+            const body = document.getElementById('data-table-body');
+            const tableCountTag = document.getElementById('table-rows-count');
+
+            if (!head || !body) return;
+
+            if (markersData.length === 0) {
+                head.innerHTML = `
+                    <tr>
+                        <th class="p-2.5 border-r border-slate-200 font-bold">Color</th>
+                        <th class="p-2.5 border-r border-slate-200 font-bold">Nombre</th>
+                        <th class="p-2.5 font-bold">Coordenadas</th>
+                    </tr>
+                `;
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="p-4 text-center italic text-slate-400">Carga un archivo KML o Excel para visualizar la tabla.</td>
+                    </tr>
+                `;
+                if (tableCountTag) tableCountTag.textContent = '0 Registros';
+                return;
+            }
+
+            const allAttrKeys = Array.from(availableFilters.dataKeys);
+
+            let headHtml = `<tr>`;
+            headHtml += `<th class="p-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-100 sticky top-0">Color</th>`;
+            headHtml += `<th class="p-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-100 sticky top-0">Nombre</th>`;
+            headHtml += `<th class="p-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-100 sticky top-0">Lat, Lng</th>`;
+            
+            allAttrKeys.forEach(key => {
+                headHtml += `<th class="p-2 border-r border-slate-200 font-bold text-slate-700 bg-slate-100 sticky top-0 whitespace-nowrap">${escapeXml(key)}</th>`;
+            });
+            headHtml += `</tr>`;
+            head.innerHTML = headHtml;
+
+            let bodyHtml = '';
+            markersData.forEach((m) => {
+                bodyHtml += `<tr class="table-row-item hover:bg-blue-50/60 transition-colors cursor-pointer" data-marker-id="${m.id}" onclick="focusMarkerFromTable('${m.id}')">`;
+                bodyHtml += `<td class="p-2 border-r border-slate-200 text-center"><span class="w-3.5 h-3.5 rounded-full inline-block shadow-sm" style="background-color: ${m.color}"></span></td>`;
+                bodyHtml += `<td class="p-2 border-r border-slate-200 font-semibold text-slate-800 whitespace-nowrap">${escapeXml(m.name)}</td>`;
+                bodyHtml += `<td class="p-2 border-r border-slate-200 font-mono text-[11px] text-slate-500 whitespace-nowrap">${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</td>`;
+                
+                allAttrKeys.forEach(key => {
+                    const val = m.data[key] !== undefined ? String(m.data[key]) : '-';
+                    bodyHtml += `<td class="p-2 border-r border-slate-200 text-slate-600 whitespace-nowrap max-w-[150px] truncate" title="${escapeXml(val)}">${escapeXml(val)}</td>`;
+                });
+
+                bodyHtml += `</tr>`;
+            });
+
+            body.innerHTML = bodyHtml;
+            if (tableCountTag) tableCountTag.textContent = `${markersData.length} Registros`;
+        }
+
+        function focusMarkerFromTable(markerId) {
+            const m = markersData.find(item => item.id === markerId);
+            if (m && m.leafletMarker) {
+                map.setView([m.lat, m.lng], 16);
+                m.leafletMarker.openPopup();
+            }
+        }
+
+        function filterTableRows() {
+            const q = document.getElementById('table-search-input').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.table-row-item');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const markerId = row.getAttribute('data-marker-id');
+                const m = markersData.find(item => item.id === markerId);
+                const isMapVisible = m && map.hasLayer(m.leafletMarker);
+
+                if ((!q || text.includes(q)) && isMapVisible) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const tableCountTag = document.getElementById('table-rows-count');
+            if (tableCountTag) tableCountTag.textContent = `${visibleCount} Registros`;
         }
 
         function clearExistingData() {
@@ -747,7 +941,7 @@
                 item.innerHTML = `
                     <div class="flex items-center gap-2 truncate">
                         <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${m.color}"></span>
-                        <span class="font-medium text-slate-700 truncate">${m.name}</span>
+                        <span class="font-medium text-slate-700 truncate">${escapeXml(m.name)}</span>
                     </div>
                     <i class="fa-solid fa-location-crosshairs text-slate-400 hover:text-blue-600"></i>
                 `;
@@ -769,7 +963,6 @@
         }
 
         function populateFilterOptions() {
-            // 1. Populate Names list with checkboxes & counts
             const nameCounts = {};
             markersData.forEach(m => {
                 nameCounts[m.name] = (nameCounts[m.name] || 0) + 1;
@@ -789,7 +982,7 @@
                     item.innerHTML = `
                         <div class="flex items-center gap-2 truncate pr-2">
                             <input type="checkbox" value="${escapeHtmlAttr(name)}" onchange="toggleNameFilter(this)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
-                            <span class="text-slate-700 truncate">${name}</span>
+                            <span class="text-slate-700 truncate">${escapeXml(name)}</span>
                         </div>
                         <span class="bg-slate-100 text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200 flex-shrink-0">${count}</span>
                     `;
@@ -797,7 +990,6 @@
                 });
             }
 
-            // 2. Populate Colors list with checkboxes & color badges
             const colorCounts = {};
             markersData.forEach(m => {
                 const c = m.color.toLowerCase();
@@ -825,16 +1017,13 @@
                 });
             }
 
-            // 3. Populate Attribute Key select
             const keySelect = document.getElementById('filter-data-key-select');
             keySelect.innerHTML = `<option value="none">-- Seleccionar Atributo (${availableFilters.dataKeys.size}) --</option>`;
             availableFilters.dataKeys.forEach(key => {
-                keySelect.innerHTML += `<option value="${key}">${key}</option>`;
+                keySelect.innerHTML += `<option value="${escapeHtmlAttr(key)}">${escapeXml(key)}</option>`;
             });
 
-            // Reset Attribute Val Box
             document.getElementById('filter-attr-val-box').classList.add('hidden');
-            
             updateFilterSummaryInfo(markersData.length);
         }
 
@@ -843,11 +1032,8 @@
         }
 
         function toggleNameFilter(checkbox) {
-            if (checkbox.checked) {
-                selectedFilterNames.add(checkbox.value);
-            } else {
-                selectedFilterNames.delete(checkbox.value);
-            }
+            if (checkbox.checked) selectedFilterNames.add(checkbox.value);
+            else selectedFilterNames.delete(checkbox.value);
             applyFilters();
         }
 
@@ -872,11 +1058,8 @@
         }
 
         function toggleColorFilter(checkbox) {
-            if (checkbox.checked) {
-                selectedFilterColors.add(checkbox.value.toLowerCase());
-            } else {
-                selectedFilterColors.delete(checkbox.value.toLowerCase());
-            }
+            if (checkbox.checked) selectedFilterColors.add(checkbox.value.toLowerCase());
+            else selectedFilterColors.delete(checkbox.value.toLowerCase());
             applyFilters();
         }
 
@@ -916,7 +1099,7 @@
                     item.innerHTML = `
                         <div class="flex items-center gap-2 truncate pr-2">
                             <input type="checkbox" value="${escapeHtmlAttr(val)}" onchange="toggleAttrValFilter(this)" class="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5">
-                            <span class="text-slate-700 truncate">${val}</span>
+                            <span class="text-slate-700 truncate">${escapeXml(val)}</span>
                         </div>
                         <span class="bg-slate-100 text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-slate-200 flex-shrink-0">${count}</span>
                     `;
@@ -927,11 +1110,8 @@
         }
 
         function toggleAttrValFilter(checkbox) {
-            if (checkbox.checked) {
-                selectedFilterAttrVals.add(checkbox.value);
-            } else {
-                selectedFilterAttrVals.delete(checkbox.value);
-            }
+            if (checkbox.checked) selectedFilterAttrVals.add(checkbox.value);
+            else selectedFilterAttrVals.delete(checkbox.value);
             applyFilters();
         }
 
@@ -967,7 +1147,6 @@
                 let matchesColor = true;
                 let matchesAttrVal = true;
 
-                // 1. General Search
                 if (searchText) {
                     const nameMatch = m.name.toLowerCase().includes(searchText);
                     const descMatch = m.description.toLowerCase().includes(searchText);
@@ -975,17 +1154,14 @@
                     matchesSearch = nameMatch || descMatch || dataMatch;
                 }
 
-                // 2. Multi-select Names Filter
                 if (selectedFilterNames.size > 0) {
                     matchesName = selectedFilterNames.has(m.name);
                 }
 
-                // 3. Multi-select Color Filter
                 if (selectedFilterColors.size > 0) {
                     matchesColor = selectedFilterColors.has(m.color.toLowerCase());
                 }
 
-                // 4. Multi-select Attribute Value Filter
                 if (selectedKey !== 'none' && selectedFilterAttrVals.size > 0) {
                     const val = m.data[selectedKey] !== undefined ? String(m.data[selectedKey]) : '(Sin datos)';
                     matchesAttrVal = selectedFilterAttrVals.has(val);
@@ -1025,7 +1201,7 @@
         function updateFilterSummaryInfo(visibleCount) {
             const info = document.getElementById('filter-results-info');
             if (markersData.length === 0) {
-                info.innerHTML = `<span>Carga un archivo KML para comenzar a aplicar filtros.</span>`;
+                info.innerHTML = `<span>Carga un archivo KML o Excel para comenzar a aplicar filtros.</span>`;
                 return;
             }
             
@@ -1263,7 +1439,7 @@
                             <span class="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center flex-shrink-0" style="background-color: ${activeRoute.color}">
                                 ${index + 1}
                             </span>
-                            <span class="font-medium text-slate-700 truncate">${m.name}</span>
+                            <span class="font-medium text-slate-700 truncate">${escapeXml(m.name)}</span>
                         </div>
                         <button onclick="removeStopFromRoute(${index})" class="text-slate-400 hover:text-red-600 px-1" title="Quitar">
                             <i class="fa-solid fa-xmark"></i>
@@ -1287,7 +1463,6 @@
             kmlString += `  <Document>\n`;
             kmlString += `    <name>Rutas Exportadas - KML Visualizer</name>\n`;
 
-            // 1. Export Original Markers
             markersData.forEach(m => {
                 kmlString += `    <Placemark>\n`;
                 kmlString += `      <name>${escapeXml(m.name)}</name>\n`;
@@ -1298,7 +1473,6 @@
                 kmlString += `    </Placemark>\n`;
             });
 
-            // 2. Export Built Routes as LineStrings
             routes.forEach(r => {
                 if (r.stops.length > 0) {
                     kmlString += `    <Placemark>\n`;
@@ -1348,7 +1522,8 @@
         }
 
         function escapeXml(unsafe) {
-            return unsafe.replace(/[<>&'"]/g, function (c) {
+            if (unsafe === undefined || unsafe === null) return '';
+            return String(unsafe).replace(/[<>&'"]/g, function (c) {
                 switch (c) {
                     case '<': return '&lt;';
                     case '>': return '&gt;';
