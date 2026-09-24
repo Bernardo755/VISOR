@@ -703,149 +703,11 @@
                 map.fitBounds(bounds, { padding: [40, 40] });
                 populatePlacemarksSummary();
                 populateDataTable();
-                populateFilterDropdowns();
+                populateFilterOptions();
                 updateBadgeCount();
             } else {
                 showToast('No se encontraron coordenadas en el archivo KML.', 'error');
             }
-        }
-
-        function populateDataTable() {
-            const tableHead = document.getElementById('data-table-head');
-            const tableBody = document.getElementById('data-table-body');
-            const rowCountTag = document.getElementById('table-rows-count');
-
-            rowCountTag.textContent = `${markersData.length} Registros`;
-
-            // Collect all unique ExtendedData keys
-            const allKeys = Array.from(availableFilters.dataKeys);
-
-            // Check if any point has plain text description
-            const hasPlainDescription = markersData.some(m => m.description && !m.description.includes('<table'));
-
-            // Construct Table Header
-            let headHtml = `<tr>
-                <th class="p-2.5 border-r border-slate-200 bg-slate-100 font-bold text-slate-700 text-center w-12 sticky left-0 z-20">Color</th>
-                <th class="p-2.5 border-r border-slate-200 bg-slate-100 font-bold text-slate-700 whitespace-nowrap">Nombre</th>`;
-            
-            if (hasPlainDescription) {
-                headHtml += `<th class="p-2.5 border-r border-slate-200 bg-slate-100 font-bold text-slate-700 whitespace-nowrap">Descripción</th>`;
-            }
-
-            allKeys.forEach(k => {
-                headHtml += `<th class="p-2.5 border-r border-slate-200 bg-slate-100 font-bold text-slate-700 whitespace-nowrap">${k}</th>`;
-            });
-            
-            headHtml += `<th class="p-2.5 bg-slate-100 font-bold text-slate-700 whitespace-nowrap">Coordenadas</th></tr>`;
-            tableHead.innerHTML = headHtml;
-
-            // Construct Table Body
-            tableBody.innerHTML = '';
-            if (markersData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${allKeys.length + 3}" class="p-4 text-center italic text-slate-400">Carga un KML para visualizar la tabla.</td></tr>`;
-                return;
-            }
-
-            markersData.forEach(m => {
-                const tr = document.createElement('tr');
-                tr.className = 'table-row-item hover:bg-blue-50/80 cursor-pointer border-b border-slate-100 transition-colors group';
-                tr.setAttribute('data-marker-id', m.id);
-                
-                let rowHtml = `
-                    <td class="p-2 border-r border-slate-100 text-center sticky left-0 bg-white group-hover:bg-blue-50/80">
-                        <span class="w-4 h-4 rounded-full inline-block border-2 border-white shadow-sm ring-1 ring-slate-200" style="background-color: ${m.color}"></span>
-                    </td>
-                    <td class="p-2 border-r border-slate-100 font-semibold text-slate-800 whitespace-nowrap group-hover:text-blue-600">${m.name}</td>
-                `;
-
-                if (hasPlainDescription) {
-                    const cleanDesc = m.description ? m.description.replace(/<[^>]*>?/gm, '').trim() : '-';
-                    rowHtml += `<td class="p-2 border-r border-slate-100 text-slate-600 max-w-[200px] truncate" title="${cleanDesc}">${cleanDesc}</td>`;
-                }
-
-                allKeys.forEach(k => {
-                    const val = m.data[k] !== undefined ? m.data[k] : '-';
-                    rowHtml += `<td class="p-2 border-r border-slate-100 text-slate-600 whitespace-nowrap">${val}</td>`;
-                });
-
-                rowHtml += `<td class="p-2 text-slate-400 text-[10px] whitespace-nowrap font-mono">${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</td>`;
-                tr.innerHTML = rowHtml;
-
-                tr.onclick = () => {
-                    map.setView([m.lat, m.lng], 16);
-                    m.leafletMarker.openPopup();
-                };
-
-                tableBody.appendChild(tr);
-            });
-        }
-
-        function filterTableRows() {
-            const searchText = document.getElementById('table-search-input').value.toLowerCase().trim();
-            const rows = document.querySelectorAll('.table-row-item');
-            
-            let visibleCount = 0;
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (!searchText || text.includes(searchText)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            document.getElementById('table-rows-count').textContent = `${visibleCount} Registros`;
-        }
-
-        function createLeafletMarker(markerItem) {
-            const iconHtml = `
-                <div class="custom-kml-marker" id="marker-icon-${markerItem.id}">
-                    <div class="marker-pin" style="background-color: ${markerItem.color};"></div>
-                </div>
-            `;
-
-            const customIcon = L.divIcon({
-                className: 'kml-marker-container',
-                html: iconHtml,
-                iconSize: [28, 28],
-                iconAnchor: [14, 28],
-                popupAnchor: [0, -28]
-            });
-
-            const leafletMarker = L.marker([markerItem.lat, markerItem.lng], { icon: customIcon }).addTo(map);
-
-            let popupContent = `
-                <div class="space-y-2">
-                    <h4 class="font-bold text-sm text-slate-800 border-b pb-1 flex items-center gap-1.5">
-                        <span class="w-3 h-3 rounded-full inline-block" style="background-color:${markerItem.color}"></span>
-                        ${markerItem.name}
-                    </h4>
-            `;
-
-            if (markerItem.description) {
-                popupContent += `<p class="text-xs text-slate-600 max-h-24 overflow-y-auto">${markerItem.description}</p>`;
-            }
-
-            const dataKeys = Object.keys(markerItem.data);
-            if (dataKeys.length > 0) {
-                popupContent += `<div class="bg-slate-50 p-2 rounded-lg border border-slate-200 mt-2 max-h-36 overflow-y-auto"><table class="w-full text-[11px] text-left">`;
-                dataKeys.forEach(k => {
-                    popupContent += `<tr class="border-b border-slate-100 last:border-0"><td class="font-semibold text-slate-600 pr-2 py-0.5">${k}:</td><td class="text-slate-800 py-0.5">${markerItem.data[k]}</td></tr>`;
-                });
-                popupContent += `</table></div>`;
-            }
-
-            popupContent += `</div>`;
-            leafletMarker.bindPopup(popupContent);
-
-            leafletMarker.on('click', () => {
-                if (isRouteEditMode && activeRouteId) {
-                    addMarkerToActiveRoute(markerItem.id);
-                }
-            });
-
-            return leafletMarker;
         }
 
         function clearExistingData() {
@@ -855,12 +717,17 @@
             markersData = [];
             availableFilters = { colors: new Set(), dataKeys: new Set() };
             
+            selectedFilterNames.clear();
+            selectedFilterColors.clear();
+            selectedFilterAttrVals.clear();
+
             routes.forEach(r => { if (r.polyline) map.removeLayer(r.polyline); });
             routes = [];
             activeRouteId = null;
             updateRouteSelectDropdown();
             
-            document.getElementById('placemarks-summary-box').classList.add('hidden');
+            const summaryBox = document.getElementById('placemarks-summary-box');
+            if (summaryBox) summaryBox.classList.add('hidden');
         }
 
         function updateBadgeCount() {
@@ -890,34 +757,8 @@
                 };
                 listContainer.appendChild(item);
             });
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [40, 40] });
-                populatePlacemarksSummary();
-                populateDataTable();
-                populateFilterOptions();
-                updateBadgeCount();
-            } else {
-                showToast('No se encontraron coordenadas en el archivo KML.', 'error');
-            }
         }
-        function clearExistingData() {
-            markersData.forEach(item => {
-                if (item.leafletMarker) map.removeLayer(item.leafletMarker);
-            });
-            markersData = [];
-            availableFilters = { colors: new Set(), dataKeys: new Set() };
-            
-            selectedFilterNames.clear();
-            selectedFilterColors.clear();
-            selectedFilterAttrVals.clear();
 
-            routes.forEach(r => { if (r.polyline) map.removeLayer(r.polyline); });
-            routes = [];
-            activeRouteId = null;
-            updateRouteSelectDropdown();
-            
-            document.getElementById('placemarks-summary-box').classList.add('hidden');
-        }
         function zoomToAllMarkers() {
             const visibleBounds = markersData
                 .filter(m => map.hasLayer(m.leafletMarker))
